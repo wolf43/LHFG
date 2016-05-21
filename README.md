@@ -7,7 +7,7 @@
 * Input file should contain newline seperated urls
 
 ## Tests
-* Checks if a url is available over https
+* Check if a url is available over https
 * Check if http request to url redirects to https
 * Get SSL labs grade - fail message if grade worse than A[A+, A, A-]
 * Check if HSTS header is set
