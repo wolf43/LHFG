@@ -1,4 +1,7 @@
 # LHFG
+This tool will run some basic tests on a url that are easily automatable. More tests will be added each week for the next few weeks  
+Initial upload will only have SSL tests  
+Checks for CSP, checks on cookie attributes and other security headers will be added over the next few weeks
 ## Usage
 * Open terminal
 * Go to the directory where LHFG.py is
