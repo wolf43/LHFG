@@ -172,6 +172,7 @@ def get_ssl_labs_grade(json_parsed_full_response):
     except KeyError as key_error:
         print "Key error: " + str(key_error) + "\nThe response object format is not correct"
         print "Please make sure this host exists and has SSL setup"
+        DICT_FOR_RESULTS[INPUT_URL]['grade_test'] = "Error"
 
 
 def ios_ats_test(json_parsed_full_response):
@@ -196,7 +197,7 @@ def ios_ats_test(json_parsed_full_response):
     except KeyError as key_error:
         print "Key error: " + str(key_error) + "\nThe response object format is not correct"
         print "Please make sure this host exists and has SSL setup"
-        DICT_FOR_RESULTS[INPUT_URL]['SSL labs error'] = True
+        DICT_FOR_RESULTS[INPUT_URL]['Apple ATS'] = "Error"
 
 
 def get_response_ssl_error_exception(url_to_test):
@@ -233,16 +234,16 @@ def check_if_ssl_redirect_exists(url_to_test):
     try:
         response = get_response_supress_ssl_warning(url_to_test)
         if response.url.startswith('https://'):
-            DICT_FOR_RESULTS[INPUT_URL]['HTTP redirects to HTTPS'] = True
+            DICT_FOR_RESULTS[INPUT_URL]['HTTP redirects to HTTPS'] = "Passed"
             print colored("TEST PASSED: http redirects to https", "green")
         else:
-            DICT_FOR_RESULTS[INPUT_URL]['HTTP redirects to HTTPS'] = False
+            DICT_FOR_RESULTS[INPUT_URL]['HTTP redirects to HTTPS'] = "Failed"
             print colored("TEST FAILED: http doesn't redirect to https", "red")
     except Exception as exception:
         print "Error occured when making a request to " + str(url_to_test) + "\nExiting now"
         print "Error: " + str(exception.__doc__)
         print "Details: " + str(exception.message)
-        DICT_FOR_RESULTS[INPUT_URL]['Error during http to https redirect test'] = True
+        DICT_FOR_RESULTS[INPUT_URL]['HTTP redirects to HTTPS'] = ["Failed", "Error"]
 
 
 def check_if_ssl_exists(url_to_test):
@@ -251,16 +252,17 @@ def check_if_ssl_exists(url_to_test):
         ssl_url = url_to_test.replace("http://", "https://")
         ssl_r = get_response_supress_ssl_warning(ssl_url)
         if ssl_r.url.startswith('https://'):
-            DICT_FOR_RESULTS[INPUT_URL]['Available over SSL'] = True
+            DICT_FOR_RESULTS[INPUT_URL]['Available over SSL'] = "Passed"
             print colored("TEST PASSED: Resource available over https", "green")
         else:
             print colored("TEST FAILED: Resource not available over https", "red")
-            DICT_FOR_RESULTS[INPUT_URL]['Available over SSL'] = False
+            DICT_FOR_RESULTS[INPUT_URL]['Available over SSL'] = "Failed"
     except Exception as exception:
-        print "Error occured when making a request to " + str(url_to_test) + "\nExiting now"
+        print "Error occured when testing for https existance " + str(url_to_test)
+        print colored("TEST FAILED: http doesn't redirect to https", "red")
+        DICT_FOR_RESULTS[INPUT_URL]['Available over SSL'] = ["Failed", "Error"]
         print "Error: " + str(exception.__doc__)
         print "Details: " + str(exception.message)
-        DICT_FOR_RESULTS[INPUT_URL]['Error during SSL availability test'] = True
 
 
 def ssl_error_test(url_to_test):
@@ -270,13 +272,13 @@ def ssl_error_test(url_to_test):
         get_response_ssl_error_exception(ssl_url)
     except Exception as exception:
         if exception.__doc__ == "An SSL error occurred.":
-            DICT_FOR_RESULTS[INPUT_URL]['SSL error'] = True
+            DICT_FOR_RESULTS[INPUT_URL]['SSL errors'] = "Passed"
             print colored("SSL Error: " + str(exception.message), "red")
         else:
             print "Error occured when making a request to " + str(url_to_test) + "\nExiting now"
             print "Error: " + str(exception.__doc__)
             print "Details: " + str(exception.message)
-            DICT_FOR_RESULTS[INPUT_URL]['Error during SSL error test'] = True
+            DICT_FOR_RESULTS[INPUT_URL]['SSL errors'] = "Failed"
 
 
 def check_hsts_header(url_to_test):
@@ -300,12 +302,100 @@ def check_hsts_header(url_to_test):
         else:
             DICT_FOR_RESULTS[INPUT_URL]['HSTS exists'] = False
             print colored("TEST FAILED: HSTS header doesn't exist", "red")
-            DICT_FOR_RESULTS[INPUT_URL]['HSTS configuration'] = False
+            DICT_FOR_RESULTS[INPUT_URL]['HSTS configuration'] = "Failed"
             print colored("TEST FAILED: HSTS header doesn't exist so not configured properly", "red")
     except Exception as exception:
         print "Error: " + str(exception.__doc__)
         print "Details: " + str(exception.message)
-        DICT_FOR_RESULTS[INPUT_URL]['Error during HSTS test'] = True
+        DICT_FOR_RESULTS[INPUT_URL]['HSTS configuration'] = "Error"
+
+
+def check_cors_header(url_to_test):
+    """Input response and check cors header."""
+    try:
+        response = get_response_supress_ssl_warning(url_to_test)
+        if "Access-Control-Allow-Origin" in response.headers:
+            # print "CORS exists"
+            if response.headers.get("Access-Control-Allow-Origin") == "*":
+                # print "Overly permissive CORS"
+                print colored("TEST FAILED - Access-Control-Allow-Origin set to *", "red")
+                DICT_FOR_RESULTS[INPUT_URL]['Access-Control-Allow-Origin'] = response.headers.get("Access-Control-Allow-Origin")
+            else:
+                print colored("TEST PASSED - Access-Control-Allow-Origin is not set to *", "green")
+                DICT_FOR_RESULTS[INPUT_URL]['Access-Control-Allow-Origin'] = response.headers.get("Access-Control-Allow-Origin")
+        else:
+            print colored("Access-Control-Allow-Origin doesn't exist", "green")
+            DICT_FOR_RESULTS[INPUT_URL]['Access-Control-Allow-Origin'] = "Not present"
+    except Exception as exception:
+        print "Error: " + str(exception.__doc__)
+        print "Details: " + str(exception.message)
+        DICT_FOR_RESULTS[INPUT_URL]['Access-Control-Allow-Origin'] = "Error"
+
+
+def check_x_frame_options(url_to_test):
+    """Input response and check x-frame-options header."""
+    try:
+        response = get_response_supress_ssl_warning(url_to_test)
+        if "x-frame-options" in response.headers:
+            # print "CORS exists"
+            if response.headers.get("x-frame-options") == "DENY" or "SAMEORIGIN":
+                # print "Overly permissive CORS"
+                print colored("TEST PASSED - x-frame-options set to " + str(response.headers.get("x-frame-options")), "green")
+                DICT_FOR_RESULTS[INPUT_URL]['x-frame-options'] = response.headers.get("x-frame-options")
+            else:
+                print colored("TEST PASSED - x-frame-options set to " + str(response.headers.get("x-frame-options")), "yellow")
+                DICT_FOR_RESULTS[INPUT_URL]['x-frame-options'] = response.headers.get("x-frame-options")
+        else:
+            print colored("TEST FAILED - x-frame-options doesn't exist", "red")
+            DICT_FOR_RESULTS[INPUT_URL]['x-frame-options'] = "Failed"
+    except Exception as exception:
+        print "Error: " + str(exception.__doc__)
+        print "Details: " + str(exception.message)
+        DICT_FOR_RESULTS[INPUT_URL]['x-frame-options'] = "Error"
+
+
+def check_x_content_type_options(url_to_test):
+    """Input response and check x-frame-options header."""
+    try:
+        response = get_response_supress_ssl_warning(url_to_test)
+        if "x-frame-options" in response.headers:
+            # print "CORS exists"
+            if response.headers.get("x-content-type-options") == "nosniff":
+                # print "Overly permissive CORS"
+                print colored("TEST PASSED - x-content-type-options set to " + str(response.headers.get("x-content-type-options")), "green")
+                DICT_FOR_RESULTS[INPUT_URL]['x-content-type-options'] = response.headers.get("x-content-type-options")
+            else:
+                print colored("TEST FAILED - x-content-type-options set to " + str(response.headers.get("x-content-type-options")), "yellow")
+                DICT_FOR_RESULTS[INPUT_URL]['x-content-type-options'] = response.headers.get("x-content-type-options")
+        else:
+            print colored("TEST FAILED - x-content-type-options doesn't exist", "red")
+            DICT_FOR_RESULTS[INPUT_URL]['x-content-type-options'] = "Failed"
+    except Exception as exception:
+        print "Error: " + str(exception.__doc__)
+        print "Details: " + str(exception.message)
+        DICT_FOR_RESULTS[INPUT_URL]['x-content-type-options'] = "Error"
+
+
+def check_x_xss_protection(url_to_test):
+    """Input response and check x-xss-protection header."""
+    try:
+        response = get_response_supress_ssl_warning(url_to_test)
+        if "x-xss-protection" in response.headers:
+            # print "CORS exists"
+            if response.headers.get("x-xss-protection") == "1; mode=block":
+                # print "Overly permissive CORS"
+                print colored("TEST PASSED - x-xss-protection set to " + str(response.headers.get("x-xss-protection")), "green")
+                DICT_FOR_RESULTS[INPUT_URL]['x-xss-protection'] = response.headers.get("x-xss-protection")
+            else:
+                print colored("TEST FAILED - x-xss-protection set to " + str(response.headers.get("x-xss-protection")), "yellow")
+                DICT_FOR_RESULTS[INPUT_URL]['x-xss-protection'] = response.headers.get("x-xss-protection")
+        else:
+            print colored("TEST FAILED - x-xss-protection doesn't exist", "red")
+            DICT_FOR_RESULTS[INPUT_URL]['x-xss-protection'] = "Failed"
+    except Exception as exception:
+        print "Error: " + str(exception.__doc__)
+        print "Details: " + str(exception.message)
+        DICT_FOR_RESULTS[INPUT_URL]['x-xss-protection'] = "Error"
 
 
 def test_url(url_to_test):
@@ -317,6 +407,10 @@ def test_url(url_to_test):
         check_if_ssl_exists(url_to_test_protocol)
         ssl_error_test(url_to_test_protocol)
         check_hsts_header(url_to_test_protocol)
+        check_cors_header(url_to_test_protocol)
+        check_x_frame_options(url_to_test_protocol)
+        check_x_content_type_options(url_to_test_protocol)
+        check_x_xss_protection(url_to_test_protocol)
         json_parsed_full_response = result_from_cache(url_to_test)
         if json_parsed_full_response:
             # Uncomment the next line to see the entire response from SSL labs
@@ -338,5 +432,5 @@ if INPUT_FILE:
         DICT_FOR_RESULTS[INPUT_URL] = {}
         test_url(INPUT_URL)
 
-# pprint(DICT_FOR_RESULTS)
+pprint(DICT_FOR_RESULTS)
 # pprint(DICT_COMPLETE_RESPONSE)
