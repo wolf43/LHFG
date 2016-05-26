@@ -21,7 +21,8 @@ Checks for CSP, checks on cookie attributes and other security checks will be ad
 * Check header value x-xss-protection: 1; mode=block
 * Check header value x-content-type-options: nosniff
 * Check header vale x-frame-options: DENY or SAMEORIGIN
-* Check header Access-Control-Allow-Origin: *
+* Check header Access-Control-Allow-Origin: *  
+
 More info about headers <https://www.owasp.org/index.php/List_of_useful_HTTP_headers>
 More info about CORS <http://www.html5rocks.com/en/tutorials/cors/>
 
