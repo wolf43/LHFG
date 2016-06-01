@@ -398,6 +398,23 @@ def check_x_xss_protection(url_to_test):
         DICT_FOR_RESULTS[INPUT_URL]['x-xss-protection'] = "Error"
 
 
+def check_crossdoamin_xml(url_to_test):
+    """Input response and check cors header."""
+    try:
+        url_to_test = url_to_test + "/crossdomain.xml"
+        response = get_response_supress_ssl_warning(url_to_test)
+        if 'allow-access-from domain="*"' in response.text:
+            print colored('TEST FAILED - crossdomain.xml attribute allow-access-from domain is set to "*"', "red")
+            DICT_FOR_RESULTS[INPUT_URL]['crossdomain.xml'] = "Failed"
+        else:
+            print colored('TEST PASSED - crossdomain.xml attribute allow-access-from domain not set to "*"', "green")
+            DICT_FOR_RESULTS[INPUT_URL]['crossdomain.xml'] = "Passed"
+    except Exception as exception:
+        print "Error: " + str(exception.__doc__)
+        print "Details: " + str(exception.message)
+        DICT_FOR_RESULTS[INPUT_URL]['crossdomain.xml'] = "Error"
+
+
 def test_url(url_to_test):
     """The function to tests argument provided to script."""
     url_to_test = url_to_test
@@ -411,6 +428,8 @@ def test_url(url_to_test):
         check_x_frame_options(url_to_test_protocol)
         check_x_content_type_options(url_to_test_protocol)
         check_x_xss_protection(url_to_test_protocol)
+        check_crossdoamin_xml(url_to_test_protocol)
+        """
         json_parsed_full_response = result_from_cache(url_to_test)
         if json_parsed_full_response:
             # Uncomment the next line to see the entire response from SSL labs
@@ -419,6 +438,7 @@ def test_url(url_to_test):
             DICT_COMPLETE_RESPONSE[INPUT_URL]['Result'] = json_parsed_full_response
             get_ssl_labs_grade(json_parsed_full_response)
             ios_ats_test(json_parsed_full_response)
+"""
 
 INPUT_FILE, INPUT_URL, OUTPUT_FILE = get_cl_arguments()
 if INPUT_URL:
