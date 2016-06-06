@@ -177,30 +177,30 @@ def get_ssl_labs_grade(json_parsed_full_response):
 
 def ios_ats_test(json_parsed_full_response):
     """Test if errors with ios9 ats - https://developer.apple.com/library/ios/releasenotes/General/WhatsNewIniOS/Articles/iOS9.html."""
-    count_of_endpoints_with_ats_errors = 0
+    count_of_endpoints_ats_errors = 0
     try:
         for i in json_parsed_full_response['endpoints']:
             for j in i['details']['sims']['results']:
                 if j['client']['name'] == "Apple ATS":
                     if j['errorCode'] != 0:
-                        count_of_endpoints_with_ats_errors += 1
+                        count_of_endpoints_ats_errors += 1
                     # -------------Test case failed-----------------
                 else:
                     pass
                     # +++++++++++++Test case passed++++++++++++++++++
-        if count_of_endpoints_with_ats_errors == 0:
+        if count_of_endpoints_ats_errors == 0:
             DICT_FOR_RESULTS[INPUT_URL]['Apple ATS'] = "All endpoints passed"
             print colored("TEST PASSED: All endpoints for host " + str(json_parsed_full_response['host']) + " passed Apple ATS test", "green")
         else:
-            DICT_FOR_RESULTS[INPUT_URL]['Apple ATS'] = str(count_of_endpoints_with_ats_errors) + " endpoints failed"
-            print colored("TEST FAILED: Total number of endpoints with Apple ATS test fail: " + str(count_of_endpoints_with_ats_errors), "red")
+            DICT_FOR_RESULTS[INPUT_URL]['Apple ATS'] = str(count_of_endpoints_ats_errors) + " endpoints failed"
+            print colored("TEST FAILED: Total number of endpoints with Apple ATS test fail: " + str(count_of_endpoints_ats_errors), "red")
     except KeyError as key_error:
         print "Key error: " + str(key_error) + "\nThe response object format is not correct"
         print "Please make sure this host exists and has SSL setup"
         DICT_FOR_RESULTS[INPUT_URL]['Apple ATS'] = "Error"
 
 
-def get_response_ssl_error_exception(url_to_test):
+def get_response(url_to_test):
     """Make request and get reponse/handle any exceptions."""
     # Some domains(google.com) don't redirect to https if the user agent is not present
     headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) \
@@ -209,7 +209,7 @@ def get_response_ssl_error_exception(url_to_test):
     return response
 
 
-def get_response_supress_ssl_warning(url_to_test):
+def get_response_supress_sslwarning(url_to_test):
     """Make request and get reponse/handle any exceptions."""
     # Some domains(google.com) don't redirect to https if the user agent is not present
     headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) \
@@ -232,7 +232,7 @@ def append_protocol(url_to_test):
 def check_if_ssl_redirect_exists(url_to_test):
     """Take in a url and test if http redirects to https."""
     try:
-        response = get_response_supress_ssl_warning(url_to_test)
+        response = get_response_supress_sslwarning(url_to_test)
         if response.url.startswith('https://'):
             DICT_FOR_RESULTS[INPUT_URL]['HTTP redirects to HTTPS'] = "Passed"
             print colored("TEST PASSED: http redirects to https", "green")
@@ -250,7 +250,7 @@ def check_if_ssl_exists(url_to_test):
     """Check if the page exists over SSL."""
     try:
         ssl_url = url_to_test.replace("http://", "https://")
-        ssl_r = get_response_supress_ssl_warning(ssl_url)
+        ssl_r = get_response_supress_sslwarning(ssl_url)
         if ssl_r.url.startswith('https://'):
             DICT_FOR_RESULTS[INPUT_URL]['Available over SSL'] = "Passed"
             print colored("TEST PASSED: Resource available over https", "green")
@@ -269,7 +269,7 @@ def ssl_error_test(url_to_test):
     """Test for SSL errors."""
     try:
         ssl_url = url_to_test.replace("http://", "https://")
-        get_response_ssl_error_exception(ssl_url)
+        get_response(ssl_url)
     except Exception as exception:
         if exception.__doc__ == "An SSL error occurred.":
             DICT_FOR_RESULTS[INPUT_URL]['SSL errors'] = "Passed"
@@ -284,7 +284,7 @@ def ssl_error_test(url_to_test):
 def check_hsts_header(url_to_test):
     """Check if response contains HSTS header."""
     try:
-        response = get_response_supress_ssl_warning(url_to_test)
+        response = get_response_supress_sslwarning(url_to_test)
         if 'strict-transport-security' in response.headers:
             DICT_FOR_RESULTS[INPUT_URL]['HSTS exists'] = True
             print colored("TEST PASSED: HSTS header exists", "green")
@@ -313,7 +313,7 @@ def check_hsts_header(url_to_test):
 def check_cors_header(url_to_test):
     """Input response and check cors header."""
     try:
-        response = get_response_supress_ssl_warning(url_to_test)
+        response = get_response_supress_sslwarning(url_to_test)
         if "Access-Control-Allow-Origin" in response.headers:
             # print "CORS exists"
             if response.headers.get("Access-Control-Allow-Origin") == "*":
@@ -335,7 +335,7 @@ def check_cors_header(url_to_test):
 def check_x_frame_options(url_to_test):
     """Input response and check x-frame-options header."""
     try:
-        response = get_response_supress_ssl_warning(url_to_test)
+        response = get_response_supress_sslwarning(url_to_test)
         if "x-frame-options" in response.headers:
             # print "CORS exists"
             if response.headers.get("x-frame-options") == "DENY" or "SAMEORIGIN":
@@ -357,7 +357,7 @@ def check_x_frame_options(url_to_test):
 def check_x_content_type_options(url_to_test):
     """Input response and check x-frame-options header."""
     try:
-        response = get_response_supress_ssl_warning(url_to_test)
+        response = get_response_supress_sslwarning(url_to_test)
         if "x-frame-options" in response.headers:
             # print "CORS exists"
             if response.headers.get("x-content-type-options") == "nosniff":
@@ -379,7 +379,7 @@ def check_x_content_type_options(url_to_test):
 def check_x_xss_protection(url_to_test):
     """Input response and check x-xss-protection header."""
     try:
-        response = get_response_supress_ssl_warning(url_to_test)
+        response = get_response_supress_sslwarning(url_to_test)
         if "x-xss-protection" in response.headers:
             # print "CORS exists"
             if response.headers.get("x-xss-protection") == "1; mode=block":
@@ -402,7 +402,7 @@ def check_crossdoamin_xml(url_to_test):
     """Input response and check cors header."""
     try:
         url_to_test = url_to_test + "/crossdomain.xml"
-        response = get_response_supress_ssl_warning(url_to_test)
+        response = get_response_supress_sslwarning(url_to_test)
         if 'allow-access-from domain="*"' in response.text:
             print colored('TEST FAILED - crossdomain.xml attribute allow-access-from domain is set to "*"', "red")
             DICT_FOR_RESULTS[INPUT_URL]['crossdomain.xml'] = "Failed"
@@ -429,7 +429,6 @@ def test_url(url_to_test):
         check_x_content_type_options(url_to_test_protocol)
         check_x_xss_protection(url_to_test_protocol)
         check_crossdoamin_xml(url_to_test_protocol)
-        """
         json_parsed_full_response = result_from_cache(url_to_test)
         if json_parsed_full_response:
             # Uncomment the next line to see the entire response from SSL labs
@@ -438,7 +437,6 @@ def test_url(url_to_test):
             DICT_COMPLETE_RESPONSE[INPUT_URL]['Result'] = json_parsed_full_response
             get_ssl_labs_grade(json_parsed_full_response)
             ios_ats_test(json_parsed_full_response)
-"""
 
 INPUT_FILE, INPUT_URL, OUTPUT_FILE = get_cl_arguments()
 if INPUT_URL:
